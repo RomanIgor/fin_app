@@ -25,167 +25,199 @@ st.set_page_config(
 # ============================================================
 st.markdown("""
 <style>
-    /* Reset și base */
-    .main .block-container { 
-        padding-top: 1.5rem; 
+    /* Base */
+    .main .block-container {
+        padding-top: 1.5rem;
         padding-bottom: 3rem;
         max-width: 1400px;
     }
-    
-    /* Font mai modern */
     html, body, [class*="css"] {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    
-    /* Sidebar mai clean */
+
+    /* Sidebar — navy */
     section[data-testid="stSidebar"] {
-        background-color: #fafbfc;
-        border-right: 1px solid #e5e7eb;
+        background-color: #1e3a5f !important;
+        border-right: none;
     }
-    
-    /* Headere mai discrete */
-    h1 { 
-        font-weight: 700; 
+    section[data-testid="stSidebar"] * {
+        color: #cbd5e1 !important;
+    }
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        color: #ffffff !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        color: #94a3b8 !important;
+    }
+    section[data-testid="stSidebar"] [role="radiogroup"] label {
+        padding: 0.45rem 0.75rem;
+        border-radius: 7px;
+        margin-bottom: 0.2rem;
+        color: #cbd5e1 !important;
+        transition: background 0.12s;
+    }
+    section[data-testid="stSidebar"] [role="radiogroup"] label:hover {
+        background-color: rgba(59,130,246,0.15) !important;
+    }
+    section[data-testid="stSidebar"] [role="radiogroup"] label[data-checked="true"] {
+        background-color: rgba(59,130,246,0.22) !important;
+        color: #93c5fd !important;
+    }
+    section[data-testid="stSidebar"] hr {
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stCaption"] {
+        color: #94a3b8 !important;
+    }
+
+    /* Headings */
+    h1 {
+        font-weight: 700;
         color: #111827;
-        font-size: 2rem !important;
+        font-size: 1.8rem !important;
         letter-spacing: -0.02em;
     }
-    h2, h3 { 
-        font-weight: 600; 
+    h2, h3 {
+        font-weight: 600;
         color: #1f2937;
         letter-spacing: -0.01em;
     }
-    
-    /* Cards gradient pentru metrici principale */
+
+    /* Tinted metric cards */
     .metric-card {
-        padding: 1.5rem 1.75rem;
-        border-radius: 16px;
-        color: white;
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
         height: 100%;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        transition: transform 0.15s ease;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .metric-card:hover { transform: translateY(-2px); }
-    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
     .metric-card-income {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
     }
     .metric-card-expense {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        background: #fef2f2;
+        border: 1px solid #fecaca;
     }
     .metric-card-balance-pos {
-        background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
     }
     .metric-card-balance-neg {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
     }
     .metric-card-count {
-        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+        background: #faf5ff;
+        border: 1px solid #e9d5ff;
     }
-    
     .metric-label {
-        font-size: 0.85rem;
-        font-weight: 500;
-        opacity: 0.9;
-        margin-bottom: 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.4rem;
+        color: #6b7280;
     }
     .metric-value {
-        font-size: 1.9rem;
+        font-size: 1.75rem;
         font-weight: 700;
-        line-height: 1.2;
+        line-height: 1.15;
         letter-spacing: -0.02em;
     }
     .metric-sub {
-        font-size: 0.8rem;
-        opacity: 0.85;
-        margin-top: 0.3rem;
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
     }
-    
-    /* Panel box pentru secțiuni */
+    .metric-card-income .metric-value  { color: #15803d; }
+    .metric-card-income .metric-label  { color: #166534; }
+    .metric-card-expense .metric-value { color: #dc2626; }
+    .metric-card-expense .metric-label { color: #991b1b; }
+    .metric-card-balance-pos .metric-value { color: #1d4ed8; }
+    .metric-card-balance-pos .metric-label { color: #1e40af; }
+    .metric-card-balance-neg .metric-value { color: #c2410c; }
+    .metric-card-balance-neg .metric-label { color: #9a3412; }
+    .metric-card-count .metric-value { color: #7c3aed; }
+    .metric-card-count .metric-label { color: #6d28d9; }
+
+    /* Trend badge */
+    .trend-badge {
+        display: inline-block;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        margin-top: 0.35rem;
+    }
+    .trend-up   { background: #dcfce7; color: #166534; }
+    .trend-down { background: #fee2e2; color: #991b1b; }
+    .trend-info { background: #dbeafe; color: #1e40af; }
+    .trend-neu  { background: #f3f4f6; color: #6b7280; }
+
+    /* Panel */
     .panel {
         background: white;
-        border-radius: 14px;
-        padding: 1.5rem;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-        margin-bottom: 1.5rem;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        margin-bottom: 1.25rem;
     }
-    
-    /* Butoane mai frumoase */
+
+    /* Filter toolbar */
+    .filter-toolbar {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        margin-bottom: 0.75rem;
+    }
+
+    /* Buttons */
     .stButton > button {
-        border-radius: 10px;
+        border-radius: 8px;
         font-weight: 500;
         transition: all 0.15s;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #e2e8f0;
     }
     .stButton > button:hover {
         border-color: #3b82f6;
         color: #3b82f6;
     }
-    
-    /* Primary button */
     .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: #3b82f6;
         border: none;
         color: white;
     }
-    
-    /* Tabs mai clean */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0.5rem;
+    .stButton > button[kind="primary"]:hover {
+        background: #2563eb;
     }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px 8px 0 0;
-        padding: 0.5rem 1rem;
-    }
-    
-    /* DataFrame mai curat */
-    [data-testid="stDataFrame"] {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    
-    /* Mesaje */
-    [data-testid="stAlert"] {
-        border-radius: 10px;
-    }
-    
-    /* Scădem dimensiunea metric default Streamlit */
-    [data-testid="stMetricValue"] {
-        font-size: 1.6rem;
-    }
-    
-    /* Sidebar radio */
-    section[data-testid="stSidebar"] [role="radiogroup"] label {
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px;
-        margin-bottom: 0.25rem;
-    }
-    section[data-testid="stSidebar"] [role="radiogroup"] label:hover {
-        background-color: #f3f4f6;
-    }
-    
-    /* Status pills pentru bugete */
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 0.4rem; }
+    .stTabs [data-baseweb="tab"] { border-radius: 7px 7px 0 0; padding: 0.45rem 1rem; }
+
+    /* DataFrame */
+    [data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
+    [data-testid="stAlert"]     { border-radius: 10px; }
+    [data-testid="stMetricValue"] { font-size: 1.5rem; }
+
+    /* Status pills */
     .status-pill {
         display: inline-block;
-        padding: 0.2rem 0.7rem;
+        padding: 0.18rem 0.6rem;
         border-radius: 999px;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 600;
     }
-    .status-ok { background: #dcfce7; color: #166534; }
+    .status-ok   { background: #dcfce7; color: #166534; }
     .status-warn { background: #fef3c7; color: #92400e; }
     .status-over { background: #fee2e2; color: #991b1b; }
-    
-    /* Transaction list style */
-    .tx-item {
-        padding: 0.9rem 1rem;
-        border-bottom: 1px solid #f3f4f6;
-        display: flex;
-        justify-content: space-between;
-    }
 </style>
 """, unsafe_allow_html=True)
 
