@@ -380,8 +380,9 @@ if page == "🏠 Dashboard":
         render_metric_card("Einnahmen", f"{einnahmen:,.2f} €",
                            card_class="metric-card-income", trend=prev_einnahmen_trend)
     with col2:
+        ausgaben_trend_display = (-prev_ausgaben_trend if prev_ausgaben_trend is not None else None)
         render_metric_card("Ausgaben", f"{ausgaben:,.2f} €",
-                           card_class="metric-card-expense", trend=prev_ausgaben_trend)
+                           card_class="metric-card-expense", trend=ausgaben_trend_display)
     with col3:
         balance_class = "metric-card-balance-pos" if saldo >= 0 else "metric-card-balance-neg"
         render_metric_card("Saldo", f"{saldo:+,.2f} €",
@@ -502,6 +503,7 @@ if page == "🏠 Dashboard":
                 sign = "+" if amount > 0 else ""
                 desc = tx.get('merchant') or tx['description']
                 desc_display = desc[:55] + ('...' if len(desc) > 55 else '')
+                desc_display = html.escape(desc_display)
                 
                 badge = category_badge_html(tx['category'])
                 st.markdown(f"""
