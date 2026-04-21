@@ -573,8 +573,8 @@ if page == "🏠 Dashboard":
 # IMPORT PDF
 # ============================================================
 elif page == "📤 Import":
-    st.title("Import extras Deutsche Bank")
-    st.caption("Încarcă unul sau mai multe PDF-uri cu Kontoauszug. Tranzacțiile duplicate sunt ignorate automat.")
+    st.title("PDF-Import Deutsche Bank")
+    st.caption("Lade einen oder mehrere Kontoauszüge hoch. Duplikate werden automatisch übersprungen.")
     
     uploaded_files = st.file_uploader(
         "Selectează PDF-uri",
@@ -593,11 +593,11 @@ elif page == "📤 Import":
                 f.write(uploaded_file.getbuffer())
             
             try:
-                with st.spinner("Parsez PDF..."):
+                with st.spinner("Verarbeite PDF..."):
                     transactions = parse_db_pdf(str(temp_path))
                 
                 if not transactions:
-                    st.warning("Nu am găsit tranzacții. Verifică dacă este un extras Deutsche Bank valid.")
+                    st.warning("Keine Transaktionen gefunden. Bitte prüfe, ob es ein gültiger Deutsche Bank Kontoauszug ist.")
                     continue
                 
                 df = pd.DataFrame(transactions)
@@ -608,28 +608,28 @@ elif page == "📤 Import":
                 aus = abs(df[df['amount'] < 0]['amount'].sum())
                 
                 col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Tranzacții", len(df))
+                col1.metric("Transaktionen", len(df))
                 col2.metric("Einnahmen", f"{ein:,.2f} €")
                 col3.metric("Ausgaben", f"{aus:,.2f} €")
-                col4.metric("Perioadă", f"{df['date'].min()} → {df['date'].max()}")
+                col4.metric("Zeitraum", f"{df['date'].min()} → {df['date'].max()}")
                 
                 # Preview
                 display_df = df[['date', 'merchant', 'category', 'amount']].copy()
-                display_df.columns = ['Dată', 'Beneficiar', 'Categorie', 'Sumă (€)']
+                display_df.columns = ['Datum', 'Empfänger', 'Kategorie', 'Betrag (€)']
                 st.dataframe(display_df, use_container_width=True, hide_index=True, height=350)
                 
                 col_save, col_cancel = st.columns([1, 4])
                 with col_save:
-                    if st.button(f"💾 Salvează în DB", key=f"save_{uploaded_file.name}", type="primary"):
+                    if st.button(f"💾 In Datenbank speichern", key=f"save_{uploaded_file.name}", type="primary"):
                         n_inserted, n_duplicates = insert_transactions(df)
                         if n_inserted > 0:
-                            st.success(f"✅ {n_inserted} tranzacții noi salvate.")
+                            st.success(f"✅ {n_inserted} neue Transaktionen gespeichert.")
                         if n_duplicates > 0:
-                            st.info(f"ℹ️ {n_duplicates} duplicate ignorate.")
+                            st.info(f"ℹ️ {n_duplicates} Duplikate übersprungen.")
                         
             except Exception as e:
-                st.error(f"❌ Eroare la parsare: {e}")
-                with st.expander("Detalii eroare"):
+                st.error(f"❌ Fehler beim Verarbeiten: {e}")
+                with st.expander("Fehlerdetails"):
                     st.exception(e)
             
             st.markdown("---")
@@ -639,31 +639,32 @@ elif page == "📤 Import":
 # TRANZACȚII
 # ============================================================
 elif page == "💳 Transaktionen":
-    st.title("Toate tranzacțiile")
-    
+    st.title("Transaktionen")
+
     df = get_transactions()
     if df.empty:
-        st.info("Nu există tranzacții. Încarcă un PDF mai întâi.")
+        st.info("Keine Transaktionen vorhanden. Bitte zuerst ein PDF importieren.")
         st.stop()
     
     df['date'] = pd.to_datetime(df['date'])
     
-    # Filtre într-o bară curată
-    with st.container():
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            date_from = st.date_input("De la", value=df['date'].min().date())
-        with col2:
-            date_to = st.date_input("Până la", value=df['date'].max().date())
-        with col3:
-            categories = ['Toate'] + sorted(df['category'].unique().tolist())
-            selected_cat = st.selectbox("Categorie", categories)
-        with col4:
-            search = st.text_input("🔍 Căutare", placeholder="Merchant, descriere...")
+    # Filter toolbar
+    st.markdown('<div class="filter-toolbar">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        date_from = st.date_input("Von", value=df['date'].min().date())
+    with col2:
+        date_to = st.date_input("Bis", value=df['date'].max().date())
+    with col3:
+        categories = ['Alle Kategorien'] + sorted(df['category'].unique().tolist())
+        selected_cat = st.selectbox("Kategorie", categories)
+    with col4:
+        search = st.text_input("🔍 Suche", placeholder="Empfänger oder Beschreibung...")
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Aplicare filtre
     mask = (df['date'].dt.date >= date_from) & (df['date'].dt.date <= date_to)
-    if selected_cat != 'Toate':
+    if selected_cat != 'Alle Kategorien':
         mask &= df['category'] == selected_cat
     if search:
         mask &= (df['description'].str.contains(search, case=False, na=False) | 
@@ -671,15 +672,12 @@ elif page == "💳 Transaktionen":
     
     df_filtered = df[mask].copy()
     
-    # Rezumat filtru
-    total = df_filtered['amount'].sum()
     col1, col2, col3 = st.columns(3)
-    col1.metric("Rezultate", len(df_filtered))
-    col2.metric("Total pozitiv", f"{df_filtered[df_filtered['amount']>0]['amount'].sum():,.2f} €")
-    col3.metric("Total negativ", f"{df_filtered[df_filtered['amount']<0]['amount'].sum():,.2f} €")
-    
-    # Editor
-    st.markdown("##### Editează categoria direct în tabel")
+    col1.metric("Ergebnisse", len(df_filtered))
+    col2.metric("Einnahmen", f"{df_filtered[df_filtered['amount']>0]['amount'].sum():,.2f} €")
+    col3.metric("Ausgaben", f"{df_filtered[df_filtered['amount']<0]['amount'].sum():,.2f} €")
+
+    st.markdown("##### Kategorie direkt in der Tabelle bearbeiten")
     
     edit_df = df_filtered[['id', 'date', 'merchant', 'description', 'amount', 'category']].copy()
     
@@ -687,12 +685,12 @@ elif page == "💳 Transaktionen":
         edit_df,
         column_config={
             "id": st.column_config.NumberColumn("ID", disabled=True, width="small"),
-            "date": st.column_config.DateColumn("Dată", disabled=True, format="DD.MM.YYYY", width="small"),
-            "merchant": st.column_config.TextColumn("Beneficiar", disabled=True, width="medium"),
-            "description": st.column_config.TextColumn("Descriere", disabled=True, width="large"),
-            "amount": st.column_config.NumberColumn("Sumă (€)", format="%.2f", disabled=True, width="small"),
+            "date": st.column_config.DateColumn("Datum", disabled=True, format="DD.MM.YYYY", width="small"),
+            "merchant": st.column_config.TextColumn("Empfänger", disabled=True, width="medium"),
+            "description": st.column_config.TextColumn("Beschreibung", disabled=True, width="large"),
+            "amount": st.column_config.NumberColumn("Betrag (€)", format="%.2f", disabled=True, width="small"),
             "category": st.column_config.SelectboxColumn(
-                "Categorie", 
+                "Kategorie",
                 options=list(CATEGORIES.keys()) + ['Sonstiges'],
                 width="medium"
             ),
@@ -703,7 +701,7 @@ elif page == "💳 Transaktionen":
         height=500
     )
     
-    if st.button("💾 Salvează schimbări categorii", type="primary"):
+    if st.button("💾 Kategorien speichern", type="primary"):
         changes = 0
         for _, row in edited.iterrows():
             original = df_filtered[df_filtered['id'] == row['id']].iloc[0]
@@ -711,18 +709,18 @@ elif page == "💳 Transaktionen":
                 update_category(row['id'], row['category'])
                 changes += 1
         if changes > 0:
-            st.success(f"✅ {changes} categorii actualizate.")
+            st.success(f"✅ {changes} Kategorien aktualisiert.")
             st.rerun()
         else:
-            st.info("Nu au fost modificări.")
+            st.info("Keine Änderungen vorgenommen.")
 
 
 # ============================================================
 # BUGETE
 # ============================================================
 elif page == "🎯 Budgets":
-    st.title("Bugete lunare")
-    st.caption("Setează limite lunare pentru fiecare categorie. Vei primi alerte pe Dashboard când depășești.")
+    st.title("Monatsbudgets")
+    st.caption("Lege monatliche Obergrenzen pro Kategorie fest.")
     
     budgets = get_budgets()
     df = get_transactions()
@@ -745,7 +743,7 @@ elif page == "🎯 Budgets":
     cats_with_data = [c for c in all_cats if c in avg_by_cat.index and avg_by_cat[c] > 0]
     cats_without_data = [c for c in all_cats if c not in cats_with_data]
     
-    tab1, tab2 = st.tabs([f"Categorii active ({len(cats_with_data)})", f"Alte categorii ({len(cats_without_data)})"])
+    tab1, tab2 = st.tabs([f"Aktive Kategorien ({len(cats_with_data)})", f"Weitere Kategorien ({len(cats_without_data)})"])
     
     with tab1:
         for cat in cats_with_data:
@@ -754,11 +752,11 @@ elif page == "🎯 Budgets":
                 st.markdown(f"**{cat}**")
                 suggest = avg_by_cat.get(cat, 0)
                 if suggest > 0:
-                    st.caption(f"Medie ultimele 3 luni: {suggest:,.2f} €")
+                    st.caption(f"Ø letzte 3 Monate: {suggest:,.2f} €")
             with col2:
                 current = budgets.get(cat, 0.0)
                 new_budget = st.number_input(
-                    f"Buget {cat}",
+                    f"Budget {cat}",
                     min_value=0.0,
                     value=float(current),
                     step=10.0,
@@ -766,13 +764,13 @@ elif page == "🎯 Budgets":
                     key=f"budget_active_{cat}"
                 )
             with col3:
-                if st.button(f"📋 Sugestie: {avg_by_cat.get(cat, 0):,.0f}€", key=f"suggest_{cat}"):
+                if st.button(f"📋 Vorschlag: {avg_by_cat.get(cat, 0):,.0f}€", key=f"suggest_{cat}"):
                     upsert_budget(cat, float(avg_by_cat.get(cat, 0)))
                     st.rerun()
             with col4:
                 if st.button("💾", key=f"save_active_{cat}"):
                     upsert_budget(cat, new_budget)
-                    st.toast(f"Salvat: {cat} = {new_budget:.2f} €", icon="✅")
+                    st.toast(f"Gespeichert: {cat} = {new_budget:.2f} €", icon="✅")
                     st.rerun()
             st.markdown("<hr style='margin: 0.5rem 0; border-color: #f3f4f6;'/>", unsafe_allow_html=True)
     
@@ -784,7 +782,7 @@ elif page == "🎯 Budgets":
             with col2:
                 current = budgets.get(cat, 0.0)
                 new_budget = st.number_input(
-                    f"Buget {cat}",
+                    f"Budget {cat}",
                     min_value=0.0,
                     value=float(current),
                     step=10.0,
@@ -801,18 +799,18 @@ elif page == "🎯 Budgets":
 # TRENDURI
 # ============================================================
 elif page == "📈 Trends":
-    st.title("Analiză trenduri")
-    
+    st.title("Trendanalyse")
+
     df = get_transactions()
     if df.empty:
-        st.info("Nu există date pentru analiză. Încarcă mai multe extrase pentru grafice mai relevante.")
+        st.info("Keine Daten für die Analyse vorhanden. Lade weitere Kontoauszüge hoch.")
         st.stop()
     
     df['date'] = pd.to_datetime(df['date'])
     df['month'] = df['date'].dt.to_period('M').astype(str)
     
     # Einnahmen vs Ausgaben
-    st.markdown("### Venituri vs Cheltuieli pe luni")
+    st.markdown("### Einnahmen vs. Ausgaben nach Monat")
     monthly = df.groupby('month').agg(
         einnahmen=('amount', lambda x: x[x > 0].sum()),
         ausgaben=('amount', lambda x: abs(x[x < 0].sum()))
@@ -822,15 +820,15 @@ elif page == "📈 Trends":
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=monthly['month'], y=monthly['einnahmen'], 
-        name='Venituri', 
+        name='Einnahmen',
         marker_color='#10b981',
-        hovertemplate='<b>%{x}</b><br>Venituri: %{y:,.2f} €<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Einnahmen: %{y:,.2f} €<extra></extra>'
     ))
     fig.add_trace(go.Bar(
         x=monthly['month'], y=-monthly['ausgaben'], 
-        name='Cheltuieli', 
+        name='Ausgaben',
         marker_color='#ef4444',
-        hovertemplate='<b>%{x}</b><br>Cheltuieli: %{y:,.2f} €<extra></extra>'
+        hovertemplate='<b>%{x}</b><br>Ausgaben: %{y:,.2f} €<extra></extra>'
     ))
     fig.add_trace(go.Scatter(
         x=monthly['month'], y=monthly['saldo'], 
@@ -852,7 +850,7 @@ elif page == "📈 Trends":
     st.plotly_chart(fig, use_container_width=True)
     
     # Evoluție pe categorii
-    st.markdown("### Evoluție pe categorii")
+    st.markdown("### Ausgabenentwicklung nach Kategorie")
     expenses = df[df['amount'] < 0].copy()
     expenses['amount_abs'] = expenses['amount'].abs()
     cat_monthly = expenses.groupby(['month', 'category'])['amount_abs'].sum().reset_index()
@@ -860,7 +858,7 @@ elif page == "📈 Trends":
     all_cats_sorted = expenses.groupby('category')['amount_abs'].sum().sort_values(ascending=False).index.tolist()
     
     selected_cats = st.multiselect(
-        "Alege categoriile",
+        "Kategorien auswählen",
         options=all_cats_sorted,
         default=all_cats_sorted[:5]
     )
@@ -884,48 +882,48 @@ elif page == "📈 Trends":
         st.plotly_chart(fig, use_container_width=True)
     
     # Statistici generale
-    st.markdown("### Statistici generale")
+    st.markdown("### Statistische Übersicht")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Cheltuială medie/lună", f"{monthly['ausgaben'].mean():,.2f} €")
-    col2.metric("Venit mediu/lună", f"{monthly['einnahmen'].mean():,.2f} €")
-    col3.metric("Saldo mediu/lună", f"{monthly['saldo'].mean():+,.2f} €")
+    col1.metric("Ø Ausgaben/Monat", f"{monthly['ausgaben'].mean():,.2f} €")
+    col2.metric("Ø Einnahmen/Monat", f"{monthly['einnahmen'].mean():,.2f} €")
+    col3.metric("Ø Saldo/Monat", f"{monthly['saldo'].mean():+,.2f} €")
     rate = (monthly['saldo'].sum() / monthly['einnahmen'].sum() * 100) if monthly['einnahmen'].sum() > 0 else 0
-    col4.metric("Rată economisire", f"{rate:.1f} %")
+    col4.metric("Gesamte Sparquote", f"{rate:.1f} %")
 
 
 # ============================================================
 # REGULI
 # ============================================================
 elif page == "⚙️ Kategorieregeln":
-    st.title("Reguli de categorizare")
-    st.caption("Adaugă keyword-uri custom pentru categorizare automată. Se aplică la următorul import.")
+    st.title("Kategorieregeln")
+    st.caption("Eigene Schlüsselwörter für die automatische Kategorisierung. Werden beim nächsten Import angewendet.")
     
     rules = get_rules()
     
     with st.form("add_rule", clear_on_submit=True):
         col1, col2, col3 = st.columns([3, 2, 1])
         with col1:
-            keyword = st.text_input("Keyword", placeholder="ex: edeka, netflix, tankstelle...")
+            keyword = st.text_input("Schlüsselwort", placeholder="z.B. edeka, netflix, tankstelle...")
         with col2:
-            category = st.selectbox("Categorie", list(CATEGORIES.keys()) + ['Sonstiges'])
+            category = st.selectbox("Kategorie", list(CATEGORIES.keys()) + ['Sonstiges'])
         with col3:
             st.write("")
             st.write("")
-            submit = st.form_submit_button("➕ Adaugă", type="primary", use_container_width=True)
-        
+            submit = st.form_submit_button("➕ Hinzufügen", type="primary", use_container_width=True)
+
         if submit and keyword:
             update_rule(keyword.lower(), category)
-            st.success(f"Regulă adăugată: `{keyword}` → {category}")
+            st.success(f"Regel hinzugefügt: `{keyword}` → {category}")
             st.rerun()
     
-    st.markdown("### Reguli custom")
+    st.markdown("### Eigene Regeln")
     if rules:
-        rules_df = pd.DataFrame(rules.items(), columns=['Keyword', 'Categorie'])
+        rules_df = pd.DataFrame(rules.items(), columns=['Schlüsselwort', 'Kategorie'])
         st.dataframe(rules_df, use_container_width=True, hide_index=True)
     else:
-        st.info("Nu ai reguli custom. Categorizarea folosește keyword-urile implicite de mai jos.")
-    
-    st.markdown("### Keyword-uri implicite")
+        st.info("Keine eigenen Regeln vorhanden. Die Standard-Schlüsselwörter werden verwendet.")
+
+    st.markdown("### Standard-Schlüsselwörter")
     cols = st.columns(3)
     for idx, (cat, keywords) in enumerate(CATEGORIES.items()):
         with cols[idx % 3]:
@@ -937,28 +935,28 @@ elif page == "⚙️ Kategorieregeln":
 # EXPORT
 # ============================================================
 elif page == "📥 Export":
-    st.title("Export")
-    
+    st.title("Datenexport")
+
     df = get_transactions()
     if df.empty:
-        st.info("Nu există date.")
+        st.info("Keine Daten vorhanden.")
         st.stop()
     
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("### Export complet")
-        st.caption("Toate tranzacțiile cu categorii și detalii.")
+        st.markdown("### Vollständiger Export")
+        st.caption("Alle Transaktionen mit Kategorien und Details.")
         csv = df.to_csv(index=False).encode('utf-8')
         st.download_button(
-            "📄 Descarcă CSV",
+            "📄 CSV herunterladen",
             csv, "finanzen_export.csv", "text/csv",
             type="primary",
             use_container_width=True
         )
     
     with col2:
-        st.markdown("### Rezumat lunar")
-        st.caption("Agregare pe lună și categorie.")
+        st.markdown("### Monatliche Zusammenfassung")
+        st.caption("Aggregiert nach Monat und Kategorie.")
         df['date'] = pd.to_datetime(df['date'])
         df['month'] = df['date'].dt.to_period('M').astype(str)
         summary = df.groupby(['month', 'category']).agg(
@@ -967,11 +965,11 @@ elif page == "📥 Export":
         ).reset_index()
         summary_csv = summary.to_csv(index=False).encode('utf-8')
         st.download_button(
-            "📊 Descarcă rezumat",
+            "📊 Zusammenfassung herunterladen",
             summary_csv, "finanzen_summary.csv", "text/csv",
             use_container_width=True
         )
     
     st.markdown("---")
-    st.markdown("### Previzualizare date")
+    st.markdown("### Datenvorschau")
     st.dataframe(df.head(20), use_container_width=True, hide_index=True)
