@@ -325,10 +325,10 @@ if page == "🏠 Dashboard":
     df = get_transactions()
     if df.empty:
         st.markdown("""
-        <div class="panel" style="text-align: center; padding: 3rem;">
-            <h2 style="margin-top: 0;">👋 Bun venit!</h2>
-            <p style="color: #6b7280; font-size: 1.05rem;">
-                Încarcă primul extras Deutsche Bank în secțiunea <b>📤 Import PDF</b> pentru a începe.
+        <div class="panel" style="text-align:center;padding:3rem;">
+            <h2 style="margin-top:0;">👋 Willkommen!</h2>
+            <p style="color:#6b7280;font-size:1.05rem;">
+                Lade deinen ersten Deutsche Bank Kontoauszug unter <b>📤 Import</b> hoch, um zu beginnen.
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -343,34 +343,45 @@ if page == "🏠 Dashboard":
     col1, col2 = st.columns([2, 6])
     with col1:
         selected_month = st.selectbox(
-            "Perioadă",
-            options=['Toate'] + [str(m) for m in months_available],
+            "Zeitraum",
+            options=['Alle Monate'] + [str(m) for m in months_available],
             index=1 if len(months_available) > 0 else 0,
             label_visibility="collapsed"
         )
-    
-    if selected_month != 'Toate':
+
+    if selected_month != 'Alle Monate':
         df_filtered = df[df['month'].astype(str) == selected_month]
         period_label = selected_month
     else:
         df_filtered = df
-        period_label = "Toată perioada"
+        period_label = "Gesamtzeitraum"
     
-    # Calcul metrici
+    # Metriken berechnen
     einnahmen = df_filtered[df_filtered['amount'] > 0]['amount'].sum()
     ausgaben = abs(df_filtered[df_filtered['amount'] < 0]['amount'].sum())
     saldo = einnahmen - ausgaben
     num_tx = len(df_filtered)
     savings_rate = (saldo / einnahmen * 100) if einnahmen > 0 else 0
-    
-    # Cards gradient
+
+    # Vormonat für Trend-Vergleich
+    prev_einnahmen_trend = prev_ausgaben_trend = None
+    if selected_month != 'Alle Monate' and len(months_available) > 1:
+        current_idx = [str(m) for m in months_available].index(selected_month)
+        if current_idx + 1 < len(months_available):
+            prev_month_str = str(months_available[current_idx + 1])
+            df_prev = df[df['month'].astype(str) == prev_month_str]
+            prev_ein = df_prev[df_prev['amount'] > 0]['amount'].sum()
+            prev_aus = abs(df_prev[df_prev['amount'] < 0]['amount'].sum())
+            prev_einnahmen_trend = calc_trend(einnahmen, prev_ein)
+            prev_ausgaben_trend = calc_trend(ausgaben, prev_aus)
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         render_metric_card("Einnahmen", f"{einnahmen:,.2f} €",
-                           card_class="metric-card-income", trend_label=period_label)
+                           card_class="metric-card-income", trend=prev_einnahmen_trend)
     with col2:
         render_metric_card("Ausgaben", f"{ausgaben:,.2f} €",
-                           card_class="metric-card-expense", trend_label=period_label)
+                           card_class="metric-card-expense", trend=prev_ausgaben_trend)
     with col3:
         balance_class = "metric-card-balance-pos" if saldo >= 0 else "metric-card-balance-neg"
         render_metric_card("Saldo", f"{saldo:+,.2f} €",
@@ -387,7 +398,7 @@ if page == "🏠 Dashboard":
     col_left, col_right = st.columns([1, 1])
     
     with col_left:
-        st.markdown("### Cheltuieli pe categorii")
+        st.markdown("### Ausgaben nach Kategorien")
         expenses = df_filtered[df_filtered['amount'] < 0].copy()
         if not expenses.empty:
             expenses['amount_abs'] = expenses['amount'].abs()
@@ -415,16 +426,16 @@ if page == "🏠 Dashboard":
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 annotations=[dict(
-                    text=f"<b>{ausgaben:,.0f}€</b><br><span style='font-size:12px;color:#6b7280'>Total</span>",
+                    text=f"<b>{ausgaben:,.0f}€</b><br><span style='font-size:12px;color:#6b7280'>Gesamt</span>",
                     x=0.5, y=0.5, showarrow=False, font=dict(size=18, color='#111827')
                 )]
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Nu există cheltuieli în perioada selectată.")
+            st.info("Keine Ausgaben im gewählten Zeitraum.")
     
     with col_right:
-        st.markdown("### Top categorii")
+        st.markdown("### Top Kategorien")
         if not expenses.empty:
             top = cat_sum.head(8)
             fig = px.bar(
@@ -452,7 +463,7 @@ if page == "🏠 Dashboard":
             st.plotly_chart(fig, use_container_width=True)
     
     # Evoluție sold cumulat
-    st.markdown("### Evoluție sold")
+    st.markdown("### Kontostandsverlauf")
     df_sorted = df_filtered.sort_values('date').copy()
     df_sorted['cumulative'] = df_sorted['amount'].cumsum()
     
@@ -463,7 +474,7 @@ if page == "🏠 Dashboard":
         line=dict(color='#3b82f6', width=2.5),
         fill='tozeroy',
         fillcolor='rgba(59, 130, 246, 0.1)',
-        hovertemplate='<b>%{x|%d %b %Y}</b><br>Cumulat: %{y:,.2f} €<extra></extra>'
+        hovertemplate='<b>%{x|%d %b %Y}</b><br>Kontostand: %{y:,.2f} €<extra></extra>'
     ))
     fig.add_hline(y=0, line_dash="dash", line_color="#9ca3af", line_width=1)
     fig.update_layout(
@@ -481,7 +492,7 @@ if page == "🏠 Dashboard":
     col_tx, col_budget = st.columns([3, 2])
     
     with col_tx:
-        st.markdown("### Ultimele tranzacții")
+        st.markdown("### Letzte Transaktionen")
         recent = df_filtered.head(8).copy()
         
         if not recent.empty:
@@ -492,24 +503,26 @@ if page == "🏠 Dashboard":
                 desc = tx.get('merchant') or tx['description']
                 desc_display = desc[:55] + ('...' if len(desc) > 55 else '')
                 
+                badge = category_badge_html(tx['category'])
                 st.markdown(f"""
-                <div style="padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 500; color: #1f2937; font-size: 0.92rem;">{desc_display}</div>
-                        <div style="color: #9ca3af; font-size: 0.78rem; margin-top: 2px;">
-                            {tx['date'].strftime('%d %b %Y')} • {tx['category']}
+                <div style="padding:0.75rem 0;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center;">
+                    <div style="flex:1;">
+                        <div style="font-weight:500;color:#1f2937;font-size:0.92rem;">{desc_display}</div>
+                        <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                            <span style="color:#9ca3af;font-size:0.76rem;">{tx['date'].strftime('%d.%m.%Y')}</span>
+                            {badge}
                         </div>
                     </div>
-                    <div style="color: {color}; font-weight: 600; font-size: 0.95rem;">
+                    <div style="color:{color};font-weight:600;font-size:0.95rem;white-space:nowrap;">
                         {sign}{amount:,.2f} €
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
     
     with col_budget:
-        st.markdown("### Status buget")
+        st.markdown("### Budgetstatus")
         budgets = get_budgets()
-        if budgets and selected_month != 'Toate' and not expenses.empty:
+        if budgets and selected_month != 'Alle Monate' and not expenses.empty:
             any_shown = False
             for cat, limit in list(budgets.items())[:6]:
                 if limit <= 0:
@@ -521,11 +534,11 @@ if page == "🏠 Dashboard":
                 if pct >= 100:
                     color = "#ef4444"
                     status_class = "status-over"
-                    status_text = "Peste"
+                    status_text = "Überschritten"
                 elif pct >= 80:
                     color = "#f59e0b"
                     status_class = "status-warn"
-                    status_text = "Aproape"
+                    status_text = "Achtung"
                 else:
                     color = "#10b981"
                     status_class = "status-ok"
@@ -541,7 +554,7 @@ if page == "🏠 Dashboard":
                         <div style="background: {color}; height: 100%; width: {pct_display}%;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; color: #6b7280; font-size: 0.78rem; margin-top: 3px;">
-                        <span>{spent:,.0f} € din {limit:,.0f} €</span>
+                        <span>{spent:,.0f} € von {limit:,.0f} €</span>
                         <span>{pct:.0f}%</span>
                     </div>
                 </div>
@@ -549,9 +562,9 @@ if page == "🏠 Dashboard":
                 any_shown = True
             
             if not any_shown:
-                st.caption("Setează bugete în secțiunea Bugete.")
+                st.caption("Budgets festlegen unter 🎯 Budgets.")
         else:
-            st.caption("Selectează o lună specifică și setează bugete pentru a vedea statusul.")
+            st.caption("Wähle einen bestimmten Monat und lege Budgets fest, um den Status zu sehen.")
 
 
 # ============================================================
