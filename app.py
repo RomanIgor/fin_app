@@ -1,6 +1,6 @@
 """
 Finanz Guru Local - Persönliche Finanzverwaltung
-Design: Light & clean, inspirat din Finanzguru, cu gradient cards
+Design: Clean Banking — navy sidebar, tinted metric cards, professional German UI
 """
 import streamlit as st
 import pandas as pd
@@ -21,7 +21,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# STYLING - Light clean theme cu gradient cards
+# STYLING - Clean Banking theme
 # ============================================================
 st.markdown("""
 <style>
@@ -60,7 +60,7 @@ st.markdown("""
     section[data-testid="stSidebar"] [role="radiogroup"] label:hover {
         background-color: rgba(59,130,246,0.15) !important;
     }
-    section[data-testid="stSidebar"] [role="radiogroup"] label[data-checked="true"] {
+    section[data-testid="stSidebar"] [role="radiogroup"] label[aria-checked="true"] {
         background-color: rgba(59,130,246,0.22) !important;
         color: #93c5fd !important;
     }
@@ -257,7 +257,7 @@ with st.sidebar:
 
 
 def render_metric_card(label, value, sub="", card_class="metric-card-income"):
-    """Render gradient metric card."""
+    """Render tinted metric card with optional trend badge."""
     st.markdown(f"""
     <div class="metric-card {card_class}">
         <div class="metric-label">{label}</div>
