@@ -577,7 +577,7 @@ elif page == "📤 Import":
     st.caption("Lade einen oder mehrere Kontoauszüge hoch. Duplikate werden automatisch übersprungen.")
     
     uploaded_files = st.file_uploader(
-        "Selectează PDF-uri",
+        "PDF-Dateien hochladen",
         type=['pdf'],
         accept_multiple_files=True,
         label_visibility="collapsed"
