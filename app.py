@@ -225,44 +225,92 @@ st.markdown("""
 init_db()
 
 # ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+CATEGORY_BADGE_COLORS = {
+    'Einkommen':         ('#dcfce7', '#166534'),
+    'Lebensmittel':      ('#fef3c7', '#92400e'),
+    'Transport':         ('#e0f2fe', '#0369a1'),
+    'Wohnen':            ('#fce7f3', '#9d174d'),
+    'Energie':           ('#fff7ed', '#9a3412'),
+    'Abos & Streaming':  ('#f0f9ff', '#0c4a6e'),
+    'Gastronomie':       ('#fdf4ff', '#7e22ce'),
+    'Versicherung':      ('#f0fdf4', '#14532d'),
+    'Gesundheit':        ('#fef2f2', '#7f1d1d'),
+    'Bank & Gebühren':   ('#f1f5f9', '#1e293b'),
+    'Online Shopping':   ('#fff1f2', '#9f1239'),
+    'Kleidung':          ('#faf5ff', '#581c87'),
+    'Elektronik':        ('#eff6ff', '#1e3a8a'),
+    'Haushalt':          ('#f0fdf4', '#166534'),
+    'Telekom & Internet':('#ecfeff', '#164e63'),
+    'Steuern & Abgaben': ('#fefce8', '#713f12'),
+    'Sonstiges':         ('#f3f4f6', '#374151'),
+}
+
+
+def category_badge_html(category: str) -> str:
+    bg, color = CATEGORY_BADGE_COLORS.get(category, ('#f3f4f6', '#374151'))
+    return (
+        f'<span style="background:{bg};color:{color};font-size:0.72rem;'
+        f'font-weight:600;padding:0.15rem 0.5rem;border-radius:4px;'
+        f'white-space:nowrap;">{category}</span>'
+    )
+
+
+def calc_trend(current: float, previous: float):
+    if previous == 0:
+        return None
+    return (current - previous) / previous * 100
+
+
+# ============================================================
 # SIDEBAR NAVIGARE
 # ============================================================
 with st.sidebar:
     st.markdown("""
-    <div style="padding: 0.5rem 0 1.5rem 0;">
-        <h2 style="margin: 0; font-size: 1.3rem; font-weight: 700;">💶 Finanz Guru</h2>
-        <p style="margin: 0; color: #6b7280; font-size: 0.85rem;">Persönliche Finanzen • Lokal</p>
+    <div style="padding:0.5rem 0 1.5rem 0;">
+        <div style="font-size:1.25rem;font-weight:700;color:white;margin-bottom:2px;">💶 Finanz Guru</div>
+        <div style="font-size:0.8rem;color:#93c5fd;">Persönliche Finanzen · Lokal</div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     page = st.radio(
-        "Navigare",
-        ["🏠 Dashboard", "📤 Import PDF", "💳 Tranzacții", "🎯 Bugete", "📈 Trenduri", "⚙️ Reguli", "📥 Export"],
+        "Navigation",
+        ["🏠 Dashboard", "📤 Import", "💳 Transaktionen", "🎯 Budgets",
+         "📈 Trends", "⚙️ Kategorieregeln", "📥 Export"],
         label_visibility="collapsed"
     )
-    
+
     st.markdown("---")
-    
-    # Stats rapide în sidebar
+
     df_all = get_transactions()
     if not df_all.empty:
-        st.caption("**Statistici rapide**")
-        st.caption(f"📊 {len(df_all)} tranzacții total")
+        st.caption("**Schnellübersicht**")
+        st.caption(f"📊 {len(df_all)} Transaktionen")
         if 'date' in df_all.columns:
             df_all['date'] = pd.to_datetime(df_all['date'])
             st.caption(f"📅 {df_all['date'].min().strftime('%b %Y')} → {df_all['date'].max().strftime('%b %Y')}")
-    
+
     st.markdown("---")
-    st.caption("🔒 Datele sunt stocate **local** în `data/finanzen.db`. Nimic nu pleacă spre cloud.")
+    st.caption("🔒 Alle Daten lokal gespeichert in `data/finanzen.db`.")
 
 
-def render_metric_card(label, value, sub="", card_class="metric-card-income"):
+def render_metric_card(label: str, value: str, sub: str = "", card_class: str = "metric-card-income", trend=None, trend_label: str = ""):
     """Render tinted metric card with optional trend badge."""
+    if trend is not None:
+        arrow = "▲" if trend >= 0 else "▼"
+        badge_class = "trend-up" if trend >= 0 else "trend-down"
+        badge = f'<span class="trend-badge {badge_class}">{arrow} {abs(trend):.1f}% ggü. Vormonat</span>'
+    elif trend_label:
+        badge = f'<span class="trend-badge trend-info">{trend_label}</span>'
+    else:
+        badge = f'<span class="trend-badge trend-neu">–</span>'
+
     st.markdown(f"""
     <div class="metric-card {card_class}">
         <div class="metric-label">{label}</div>
         <div class="metric-value">{value}</div>
-        <div class="metric-sub">{sub}</div>
+        <div class="metric-sub">{badge}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -505,7 +553,7 @@ if page == "🏠 Dashboard":
 # ============================================================
 # IMPORT PDF
 # ============================================================
-elif page == "📤 Import PDF":
+elif page == "📤 Import":
     st.title("Import extras Deutsche Bank")
     st.caption("Încarcă unul sau mai multe PDF-uri cu Kontoauszug. Tranzacțiile duplicate sunt ignorate automat.")
     
@@ -571,7 +619,7 @@ elif page == "📤 Import PDF":
 # ============================================================
 # TRANZACȚII
 # ============================================================
-elif page == "💳 Tranzacții":
+elif page == "💳 Transaktionen":
     st.title("Toate tranzacțiile")
     
     df = get_transactions()
@@ -653,7 +701,7 @@ elif page == "💳 Tranzacții":
 # ============================================================
 # BUGETE
 # ============================================================
-elif page == "🎯 Bugete":
+elif page == "🎯 Budgets":
     st.title("Bugete lunare")
     st.caption("Setează limite lunare pentru fiecare categorie. Vei primi alerte pe Dashboard când depășești.")
     
@@ -733,7 +781,7 @@ elif page == "🎯 Bugete":
 # ============================================================
 # TRENDURI
 # ============================================================
-elif page == "📈 Trenduri":
+elif page == "📈 Trends":
     st.title("Analiză trenduri")
     
     df = get_transactions()
@@ -829,7 +877,7 @@ elif page == "📈 Trenduri":
 # ============================================================
 # REGULI
 # ============================================================
-elif page == "⚙️ Reguli":
+elif page == "⚙️ Kategorieregeln":
     st.title("Reguli de categorizare")
     st.caption("Adaugă keyword-uri custom pentru categorizare automată. Se aplică la următorul import.")
     
