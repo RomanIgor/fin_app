@@ -2,6 +2,7 @@
 Finanz Guru Local - Persönliche Finanzverwaltung
 Design: Clean Banking — navy sidebar, tinted metric cards, professional German UI
 """
+import html
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -253,7 +254,7 @@ def category_badge_html(category: str) -> str:
     return (
         f'<span style="background:{bg};color:{color};font-size:0.72rem;'
         f'font-weight:600;padding:0.15rem 0.5rem;border-radius:4px;'
-        f'white-space:nowrap;">{category}</span>'
+        f'white-space:nowrap;">{html.escape(category)}</span>'
     )
 
 
@@ -295,7 +296,7 @@ with st.sidebar:
     st.caption("🔒 Alle Daten lokal gespeichert in `data/finanzen.db`.")
 
 
-def render_metric_card(label: str, value: str, sub: str = "", card_class: str = "metric-card-income", trend=None, trend_label: str = ""):
+def render_metric_card(label: str, value: str, card_class: str = "metric-card-income", trend=None, trend_label: str = ""):
     """Render tinted metric card with optional trend badge."""
     if trend is not None:
         arrow = "▲" if trend >= 0 else "▼"
@@ -365,16 +366,19 @@ if page == "🏠 Dashboard":
     # Cards gradient
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        render_metric_card("Einnahmen", f"{einnahmen:,.2f} €", period_label, "metric-card-income")
+        render_metric_card("Einnahmen", f"{einnahmen:,.2f} €",
+                           card_class="metric-card-income", trend_label=period_label)
     with col2:
-        render_metric_card("Ausgaben", f"{ausgaben:,.2f} €", period_label, "metric-card-expense")
+        render_metric_card("Ausgaben", f"{ausgaben:,.2f} €",
+                           card_class="metric-card-expense", trend_label=period_label)
     with col3:
         balance_class = "metric-card-balance-pos" if saldo >= 0 else "metric-card-balance-neg"
-        render_metric_card("Saldo", f"{saldo:+,.2f} €", 
-                          f"Rata economisire: {savings_rate:.1f}%" if einnahmen > 0 else "",
-                          balance_class)
+        render_metric_card("Saldo", f"{saldo:+,.2f} €",
+                           card_class=balance_class,
+                           trend_label=f"Sparquote: {savings_rate:.1f}%" if einnahmen > 0 else "")
     with col4:
-        render_metric_card("Tranzacții", f"{num_tx}", period_label, "metric-card-count")
+        render_metric_card("Transaktionen", f"{num_tx}",
+                           card_class="metric-card-count", trend_label=period_label)
     
     st.write("")
     st.write("")
